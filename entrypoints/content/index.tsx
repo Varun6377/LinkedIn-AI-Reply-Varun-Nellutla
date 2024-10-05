@@ -48,7 +48,7 @@ export default defineContentScript({
       iconElement.id = "focus-icon";
       iconElement.src = chrome.runtime.getURL("icon/ai-icon.svg");
 
-      // icon styles
+      // Icon styles
       Object.assign(iconElement.style, {
         position: "absolute",
         bottom: "5px",
