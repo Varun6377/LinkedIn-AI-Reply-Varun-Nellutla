@@ -8,6 +8,7 @@ export default defineContentScript({
   async main() {
     const processedInputs = new Set<HTMLElement>();
 
+    // Finds and setups message input fields
     const findMessageInputs = () => {
       const messageInputs = document.querySelectorAll(
         ".msg-form__contenteditable"
@@ -15,13 +16,16 @@ export default defineContentScript({
 
       messageInputs.forEach((messageInput) => {
         if (!processedInputs.has(messageInput)) {
-          setupInputFieldListeners(messageInput);
+          initializeInputListeners(messageInput);
           processedInputs.add(messageInput);
         }
       });
     };
 
-    const setupInputFieldListeners = (inputField: HTMLElement) => {
+    // Initializes listeners for input fields
+    const initializeInputListeners = (inputField: HTMLElement) => {
+      if (!inputField) return;
+
       inputField.addEventListener("focus", () => {
         displayIcon(inputField);
       });
@@ -36,6 +40,7 @@ export default defineContentScript({
       });
     };
 
+    // Displays the icon in the input field
     const displayIcon = (inputField: HTMLElement) => {
       if (inputField.querySelector("#focus-icon")) return;
 
@@ -43,13 +48,17 @@ export default defineContentScript({
       iconElement.id = "focus-icon";
       iconElement.src = chrome.runtime.getURL("icon/ai-icon.svg");
 
-      iconElement.style.position = "absolute";
-      iconElement.style.bottom = "5px";
-      iconElement.style.right = "5px";
-      iconElement.style.pointerEvents = "auto";
-      iconElement.style.zIndex = "9999";
-      iconElement.style.cursor = "pointer";
+      // icon styles
+      Object.assign(iconElement.style, {
+        position: "absolute",
+        bottom: "5px",
+        right: "5px",
+        pointerEvents: "auto",
+        zIndex: "9999",
+        cursor: "pointer",
+      });
 
+      // Sets up event listeners for icon interactions
       iconElement.addEventListener("mouseover", () => {
         iconElement.style.transform = "scale(1.1)";
         iconElement.style.opacity = "5";
@@ -68,6 +77,7 @@ export default defineContentScript({
       inputField.style.position = "relative";
     };
 
+    // Hides the icon
     const hideIcon = (inputField: HTMLElement) => {
       const iconElement = inputField.querySelector("#focus-icon");
       if (iconElement) {
@@ -75,6 +85,7 @@ export default defineContentScript({
       }
     };
 
+    // Shows the modal on icon click
     const showModal = (inputField: HTMLElement) => {
       const messageInputContainer = inputField.closest(
         ".msg-form__msg-content-container"
@@ -86,8 +97,7 @@ export default defineContentScript({
       const rect = inputField.getBoundingClientRect();
 
       const modalContainer = document.createElement("div");
-
-      const modalTop = rect.top - 180;
+      const modalBottom = window.innerHeight - rect.top + 75;
       const modalLeft = rect.left - 5;
 
       document.body.appendChild(modalContainer);
@@ -103,7 +113,7 @@ export default defineContentScript({
         <Modal
           onClose={handleClose}
           width={modalWidth}
-          top={modalTop}
+          bottom={modalBottom}
           left={modalLeft}
           inputField={inputField}
           displayIcon={displayIcon}
@@ -111,10 +121,8 @@ export default defineContentScript({
       );
     };
 
-    const observer = new MutationObserver(() => {
-      findMessageInputs();
-    });
-
+    // Monitors DOM changes to find new message inputs
+    const observer = new MutationObserver(findMessageInputs);
     observer.observe(document.body, { childList: true, subtree: true });
 
     findMessageInputs();

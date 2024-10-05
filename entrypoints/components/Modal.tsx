@@ -1,71 +1,112 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
-const Modal = ({
-  onClose,
-  width,
-  top,
-  left,
-  inputField,
-  displayIcon,
-}: {
+interface ModalProps {
   onClose: () => void;
   width: number;
-  top: number;
+  bottom: number;
   left: number;
   inputField: HTMLElement;
   displayIcon: (inputField: HTMLElement) => void;
+}
+
+const Modal: React.FC<ModalProps> = ({
+  onClose,
+  width,
+  bottom,
+  left,
+  inputField,
+  displayIcon,
 }) => {
   const [command, setCommand] = useState("");
   const [response, setResponse] = useState("");
   const [isGenerated, setIsGenerated] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
-  const handleGenerate = () => {
+  // Handles the generation of the response
+  const handleGenerate = useCallback(() => {
+    if (!command.trim()) {
+      alert("Please enter a prompt before generating.");
+      return;
+    }
     setResponse(
       "Thank you for the opportunity! If you have any more questions or if there's anything else I can help you with, feel free to ask."
     );
     setIsGenerated(true);
-  };
+  }, [command]);
 
-  const handleInsert = () => {
+  // Handles inserting the generated response into the input field
+  const handleInsert = useCallback(() => {
     const messageInput = inputField.querySelector("p") as HTMLParagraphElement;
     if (messageInput) {
       messageInput.textContent += `${response}`;
-
       const event = new Event("input", { bubbles: true });
       messageInput.dispatchEvent(event);
       messageInput.focus();
       displayIcon(inputField);
-      onClose();
+      handleCloseModal();
     }
+  }, [inputField, response, displayIcon]);
+
+  // Smoothly closes the modal
+  const handleCloseModal = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onClose, 300);
+    }, 300);
   };
 
-  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
+  // Handles clicks on the modal backdrop/outside the modal
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.target === event.currentTarget) {
+        handleCloseModal();
+      }
+    },
+    []
+  );
 
-  const adjustedTop = isGenerated ? top - 60 : top;
+  // Triggers modal visibility after mounting
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-25 z-50"
+      className={`fixed inset-0 bg-black bg-opacity-25 z-50 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      } transition-opacity duration-300 ease-out`}
       onClick={handleBackdropClick}
     >
       <div
-        className="shadow-md shadow-gray-400 bg-white p-6 rounded-2xl overflow-hidden"
+        className={`shadow-md shadow-gray-400 bg-white p-6 rounded-2xl overflow-hidden transform ${
+          isVisible && !isClosing
+            ? "scale-100 opacity-100"
+            : "scale-95 opacity-0"
+        } transition-all duration-300 ${isClosing ? "ease-in" : "ease-out"}`}
         style={{
           width: `${width}px`,
           position: "absolute",
-          top: `${adjustedTop}px`,
+          bottom: `${bottom}px`,
           left: `${left}px`,
         }}
       >
-        {isGenerated && (
-          <div className="mt-4 mb-4">
-            <p className="text-2xl text-gray-500">{response}</p>
-          </div>
-        )}
+        <div
+          ref={modalContentRef}
+          style={{
+            maxHeight: isGenerated ? "100px" : "0px",
+            overflow: "hidden",
+            transition: "max-height 0.3s ease",
+          }}
+        >
+          {isGenerated && (
+            <div className="mt-4 mb-4">
+              <p className="text-2xl text-gray-500">{response}</p>
+            </div>
+          )}
+        </div>
         <input
           type="text"
           value={command}
@@ -82,7 +123,7 @@ const Modal = ({
           {isGenerated && (
             <button
               onClick={handleInsert}
-              className="flex items-center border text-2xl text-gray-600 font-semibold	border-gray-600 border-solid px-5 rounded-lg"
+              className="flex items-center border text-2xl text-gray-600 font-semibold border-gray-600 border-solid px-5 rounded-lg"
             >
               <img
                 src={chrome.runtime.getURL("icon/insert.svg")}
