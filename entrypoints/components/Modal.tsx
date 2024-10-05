@@ -36,7 +36,7 @@ const Modal: React.FC<ModalProps> = ({
     setIsGenerated(true);
   }, [command]);
 
-  // Handles inserting the generated response into the input field
+  // Handles inserting of generated response into the input field
   const handleInsert = useCallback(() => {
     const messageInput = inputField.querySelector("p") as HTMLParagraphElement;
     if (messageInput) {
