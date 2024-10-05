@@ -58,7 +58,7 @@ const Modal: React.FC<ModalProps> = ({
     }, 300);
   };
 
-  // Handles clicks on the modal backdrop/outside the modal
+  // Handles click on the modal backdrop/outside the modal
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
